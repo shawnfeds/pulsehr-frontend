@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PulseHR — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #060a12; --surface: #0d1420; --surface2: #131d2e;
+      --border: rgba(255,255,255,0.07); --border-focus: rgba(59,130,246,0.5);
+      --accent: #3b82f6; --accent2: #60a5fa; --accent-glow: rgba(59,130,246,0.12);
+      --text: #f1f5f9; --muted: #64748b; --muted2: #94a3b8;
+      --error: #f87171; --font-head: 'Syne', sans-serif; --font: 'DM Sans', sans-serif;
+    }
+    html, body { height: 100%; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+    /* ── Left panel ── */
+    .left-panel {
+      flex: 1; display: flex; flex-direction: column; justify-content: center;
+      align-items: flex-start; padding: 80px 72px; position: relative; overflow: hidden;
+    }
+    .left-panel::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 20% 50%, rgba(59,130,246,0.1) 0%, transparent 60%),
+                  radial-gradient(ellipse 40% 40% at 80% 20%, rgba(99,102,241,0.06) 0%, transparent 50%);
+    }
+    .dots-grid {
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(ellipse 70% 80% at 30% 50%, black 0%, transparent 70%);
+    }
+    .left-content { position: relative; z-index: 1; max-width: 480px; }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 72px; }
+    .brand-mark {
+      width: 36px; height: 36px; flex-shrink: 0;
+    }
+    .brand-name { font-family: var(--font-head); font-size: 18px; font-weight: 700; }
+
+    .fun-tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.18);
+      border-radius: 100px; padding: 5px 14px; margin-bottom: 24px;
+      font-size: 11px; font-weight: 700; color: var(--accent2);
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s ease infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+
+    .hero-title {
+      font-family: var(--font-head); font-size: clamp(38px, 4.5vw, 58px);
+      font-weight: 800; line-height: 1.04; letter-spacing: -2px; margin-bottom: 20px;
+    }
+    .hero-title .grad {
+      background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    .quip-list { display: flex; flex-direction: column; gap: 16px; margin-top: 40px; }
+    .quip-item {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .quip-emoji { font-size: 20px; flex-shrink: 0; }
+    .quip-text { font-size: 13px; color: var(--muted2); line-height: 1.5; }
+    .quip-text strong { color: var(--text); font-weight: 600; }
+
+    /* ── Right form panel ── */
+    .right-panel {
+      width: 460px; flex-shrink: 0; background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 60px 44px; position: relative;
+    }
+    .right-panel::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.5;
+    }
+    .form-header { margin-bottom: 32px; }
+    .form-header h2 { font-family: var(--font-head); font-size: 24px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 5px; }
+    .form-header p { font-size: 13px; color: var(--muted); }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 11px; font-weight: 700; color: var(--muted2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.6px; }
+    .input-wrap { position: relative; }
+    .input-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; pointer-events: none; }
+    .form-input {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 11px 13px 11px 38px;
+      font-size: 13px; font-family: var(--font); color: var(--text); outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .form-input::placeholder { color: var(--muted); }
+    .pw-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 4px; }
+    .form-row { display: flex; justify-content: space-between; align-items: center; margin: 14px 0 20px; }
+    .remember-label { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted2); cursor: pointer; }
+    .remember-label input { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+    .forgot-link { font-size: 13px; color: var(--accent2); text-decoration: none; transition: color 0.15s; }
+    .forgot-link:hover { color: var(--text); }
+    .submit-btn {
+      width: 100%; padding: 12px; background: var(--accent); color: white; border: none;
+      border-radius: 10px; font-size: 14px; font-weight: 600; font-family: var(--font);
+      cursor: pointer; transition: all 0.2s; display: flex; align-items: center;
+      justify-content: center; gap: 8px; box-shadow: 0 4px 16px rgba(59,130,246,0.25);
+    }
+    .submit-btn:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.35); }
+    .submit-btn:active { transform: translateY(0); }
+    .submit-btn.loading { opacity: 0.7; pointer-events: none; }
+    .spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-box { display: none; align-items: center; gap: 8px; padding: 10px 13px; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.25); border-radius: 8px; font-size: 13px; color: var(--error); margin-bottom: 14px; }
+    .error-box.show { display: flex; }
+    @media (max-width: 860px) { .left-panel { display: none; } .right-panel { width: 100%; } }
+  </style>
+</head>
+<body>
+  <div class="left-panel">
+    <div class="dots-grid"></div>
+    <div class="left-content">
+      <div class="brand">
+        <svg class="brand-mark" width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <rect width="36" height="36" rx="10" fill="#3b82f6"/>
+          <path d="M10 9h9a7 7 0 0 1 0 14h-9V9z" fill="white" opacity="0.95"/>
+          <rect x="10" y="25" width="5" height="2.5" rx="1.25" fill="white" opacity="0.6"/>
+        </svg>
+        <span class="brand-name">PulseHR</span>
+      </div>
+      <div class="fun-tag"><div class="pulse-dot"></div> Employee Portal</div>
+      <h1 class="hero-title">Work smarter,<br><span class="grad">not harder.</span></h1>
+      <div class="quip-list">
+        <div class="quip-item">
+          <span class="quip-emoji">⏱</span>
+          <div class="quip-text"><strong>Log time without the drama.</strong><br>No more spreadsheets, no more chasing managers — just click and go.</div>
+        </div>
+        <div class="quip-item">
+          <span class="quip-emoji">🏖</span>
+          <div class="quip-text"><strong>Apply leave in under 30 seconds.</strong><br>Because life happens, and your HR system should keep up.</div>
+        </div>
+        <div class="quip-item">
+          <span class="quip-emoji">📊</span>
+          <div class="quip-text"><strong>Your data, actually readable.</strong><br>Salary, projects, history — everything in one clean view.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="form-header">
+      <h2>Welcome back</h2>
+      <p>Sign in to your employee account</p>
+    </div>
+    <div class="error-box" id="error-box">⚠ <span id="error-text"></span></div>
+    <form id="login-form" autocomplete="off">
+      <div class="form-group">
+        <label class="form-label">Work Email</label>
+        <div class="input-wrap">
+          <span class="input-icon">✉</span>
+          <input class="form-input" type="email" id="email" placeholder="you@company.com"
+            autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-wrap">
+          <span class="input-icon">🔒</span>
+          <input class="form-input" type="password" id="password" placeholder="••••••••" autocomplete="new-password" required>
+          <button type="button" class="pw-toggle" id="toggle-pw">👁</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="remember-label"><input type="checkbox" id="remember"> Remember me</label>
+        <a href="#" class="forgot-link" id="forgot-link">Forgot password?</a>
+      </div>
+      <button type="submit" class="submit-btn" id="submit-btn"><span id="btn-text">Sign in</span></button>
+    </form>
+  </div>
+
+  <!-- Forgot Password overlay -->
+  <div id="forgot-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+    <div style="background:var(--surface);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:36px;width:100%;max-width:420px;position:relative">
+      <button id="close-forgot" style="position:absolute;top:16px;right:16px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">✕</button>
+      <div id="forgot-content">
+        <h3 style="font-family:var(--font-head);font-size:20px;font-weight:700;margin-bottom:6px">Reset Password</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:24px">Enter your work email and we'll send you a reset link.</p>
+        <div class="form-group">
+          <label class="form-label">Work Email</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉</span>
+            <input class="form-input" type="email" id="reset-email" placeholder="you@company.com" autocomplete="off">
+          </div>
+        </div>
+        <div id="forgot-error" style="display:none;padding:10px 13px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);border-radius:8px;font-size:12px;color:var(--error);margin-bottom:14px"></div>
+        <button id="send-reset-btn" style="width:100%;padding:12px;background:var(--accent);color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">Send Reset Link</button>
+      </div>
+      <div id="forgot-success" style="display:none;text-align:center;padding:12px 0">
+        <div style="font-size:40px;margin-bottom:16px">📧</div>
+        <h3 style="font-family:var(--font-head);font-size:18px;font-weight:700;margin-bottom:8px">Check your inbox</h3>
+        <p style="font-size:13px;color:var(--muted);line-height:1.6">If an account exists for that email, a password reset link has been sent. Check your spam folder if you don't see it.</p>
+        <button id="close-success" style="margin-top:20px;padding:10px 24px;background:var(--surface2);border:1px solid rgba(255,255,255,0.1);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { AuthAPI } from '../js/services/api.js';
+    import { setSession } from '../js/utils/auth.js';
+
+    // Disable browser autofill retention
+    document.querySelector('#email').value = '';
+    document.querySelector('#password').value = '';
+
+    document.querySelector('#toggle-pw').addEventListener('click', () => {
+      const pw = document.querySelector('#password');
+      pw.type = pw.type === 'password' ? 'text' : 'password';
+    });
+
+    document.querySelector('#login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.querySelector('#submit-btn');
+      const errEl = document.querySelector('#error-box');
+      errEl.classList.remove('show');
+      btn.classList.add('loading');
+      btn.innerHTML = '<div class="spinner"></div> Signing in…';
+      try {
+        const { data } = await AuthAPI.employeeLogin({
+          email: document.querySelector('#email').value,
+          password: document.querySelector('#password').value,
+        });
+        setSession(data, 'employee');
+        window.location.href = '../index.html';
+      } catch (err) {
+        document.querySelector('#error-text').textContent = err.message || 'Invalid credentials. Please try again.';
+        errEl.classList.add('show');
+        btn.classList.remove('loading');
+        btn.innerHTML = '<span id="btn-text">Sign in</span>';
+      }
+    });
+
+    // Forgot password
+    const overlay = document.querySelector('#forgot-overlay');
+    document.querySelector('#forgot-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      overlay.style.display = 'flex';
+    });
+    document.querySelector('#close-forgot').addEventListener('click', () => overlay.style.display = 'none');
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.style.display = 'none'; });
+
+    document.querySelector('#send-reset-btn').addEventListener('click', async () => {
+      const email = document.querySelector('#reset-email').value.trim();
+      const errEl = document.querySelector('#forgot-error');
+      errEl.style.display = 'none';
+      if (!email) { errEl.textContent = 'Please enter your email'; errEl.style.display = 'block'; return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'Please enter a valid email'; errEl.style.display = 'block'; return; }
+      const btn = document.querySelector('#send-reset-btn');
+      btn.textContent = 'Sending…'; btn.disabled = true;
+      await new Promise(r => setTimeout(r, 1200)); // simulate API call
+      document.querySelector('#forgot-content').style.display = 'none';
+      document.querySelector('#forgot-success').style.display = 'block';
+    });
+    document.querySelector('#close-success').addEventListener('click', () => {
+      overlay.style.display = 'none';
+      document.querySelector('#forgot-content').style.display = 'block';
+      document.querySelector('#forgot-success').style.display = 'none';
+      document.querySelector('#reset-email').value = '';
+      document.querySelector('#send-reset-btn').textContent = 'Send Reset Link';
+      document.querySelector('#send-reset-btn').disabled = false;
+    });
+  </script>
+</body>
+</html>
