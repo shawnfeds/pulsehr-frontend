@@ -127,8 +127,6 @@ window.MOCK_MODE = false;
 const BASE_URL = 'https://your-api.com/api';
 ```
 
-See [`API_CONTRACT.md`](./API_CONTRACT.md) for the full endpoint reference.
-
 ---
 
 ## 🏗️ Backend
@@ -142,15 +140,6 @@ This frontend is designed to pair with a **.NET 8 Web API** backend.
 - Entity Framework Core + MS SQL Server
 - JWT Authentication
 - Role-based authorization (Admin / Employee)
-
----
-
-## 📄 Docs
-
-| File | Description |
-|------|-------------|
-| [`API_CONTRACT.md`](./API_CONTRACT.md) | All REST endpoints, request/response shapes |
-| [`DB_SCHEMA.md`](./DB_SCHEMA.md) | Full MS SQL Server database schema |
 
 ---
 
@@ -168,4 +157,4 @@ This is a static site — deploy for **free** on any of these platforms:
 
 ## 📝 License
 
-MIT © [Shawn](https://github.com/shawnfeds)
+MIT © [LICENSE](LICENSE)
