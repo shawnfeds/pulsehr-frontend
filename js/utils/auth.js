@@ -8,6 +8,7 @@ export function setSession(userData, role) {
     user: userData,
     role,          // 'employee' | 'admin'
     token: userData.token || null,
+    refreshToken: userData.refreshToken || null,
     expiresAt: userData.expiresAt || null,
     loginAt: new Date().toISOString(),
   };
@@ -42,6 +43,20 @@ export function getToken() {
   return getSession()?.token || null;
 }
 
+export function getRefreshToken() {
+  return getSession()?.refreshToken || null;
+}
+
+export function updateSessionTokens(token, refreshToken, expiresAt) {
+  const session = getSession();
+  if (session) {
+    session.token = token;
+    session.refreshToken = refreshToken;
+    session.expiresAt = expiresAt;
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  }
+}
+
 export function isAuthenticated() {
   return getSession() !== null;
 }
@@ -70,11 +85,22 @@ export function requireAuth(requiredRole = null) {
   return true;
 }
 
-export function logout() {
+export async function logout() {
   const role = getRole();
-  clearSession();
-  const loginUrl = role === 'admin'
-    ? 'auth/admin-login.html'
-    : 'auth/employee-login.html';
-  window.location.href = loginUrl;
+  const refreshToken = getRefreshToken();
+
+  try {
+    const { AuthAPI } = await import('../services/api.js');
+    if (refreshToken) {
+      await AuthAPI.logout({ refreshToken });
+    }
+  } catch (err) {
+    console.error('Logout error on backend:', err);
+  } finally {
+    clearSession();
+    const loginUrl = role === 'admin'
+      ? 'auth/admin-login.html'
+      : 'auth/employee-login.html';
+    window.location.href = loginUrl;
+  }
 }

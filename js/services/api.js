@@ -2,7 +2,7 @@
 // Replace BASE_URL with your .NET API URL
 // All endpoints mirror the API contract document
 
-import { getToken, clearSession } from '../utils/auth.js';
+import { getToken, clearSession, getRefreshToken, updateSessionTokens } from '../utils/auth.js';
 
 export const BASE_URL = 'http://localhost:5000/api'; // ← Change to your .NET API URL
 
@@ -28,12 +28,57 @@ async function request(method, path, body = null, opts = {}) {
   // ─────────────────────────────────────────────────────────────────
 
   try {
-    const res = await fetch(`${BASE_URL}${path}`, config);
+    let res = await fetch(`${BASE_URL}${path}`, config);
 
     if (res.status === 401) {
-      clearSession();
-      window.location.href = 'auth/employee-login.html';
-      return;
+      if (path !== '/auth/refresh' && path !== '/auth/employee/login' && path !== '/auth/admin/login') {
+        const refreshToken = getRefreshToken();
+        if (refreshToken) {
+          try {
+            const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken }),
+            });
+
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              if (refreshData && refreshData.success && refreshData.data) {
+                const { token: newAccessToken, refreshToken: newRefreshToken, expiresAt } = refreshData.data;
+                updateSessionTokens(newAccessToken, newRefreshToken, expiresAt);
+
+                // Retry original request
+                const newHeaders = {
+                  ...headers,
+                  Authorization: `Bearer ${newAccessToken}`,
+                };
+                const newConfig = {
+                  ...config,
+                  headers: newHeaders,
+                };
+                res = await fetch(`${BASE_URL}${path}`, newConfig);
+              } else {
+                throw new Error('Invalid refresh response structure');
+              }
+            } else {
+              throw new Error('Token refresh request failed');
+            }
+          } catch (refreshErr) {
+            console.error('Session expired, auto-refresh failed:', refreshErr);
+            clearSession();
+            window.location.href = 'auth/employee-login.html';
+            return;
+          }
+        } else {
+          clearSession();
+          window.location.href = 'auth/employee-login.html';
+          return;
+        }
+      } else {
+        clearSession();
+        window.location.href = 'auth/employee-login.html';
+        return;
+      }
     }
 
     if (!res.ok) {
@@ -62,8 +107,8 @@ const http = {
 export const AuthAPI = {
   employeeLogin: (body) => http.post('/auth/employee/login', body),
   adminLogin: (body) => http.post('/auth/admin/login', body),
-  logout: () => http.post('/auth/logout'),
-  refreshToken: () => http.post('/auth/refresh'),
+  logout: (body) => http.post('/auth/logout', body),
+  refreshToken: (body) => http.post('/auth/refresh', body),
   me: () => http.get('/auth/me'),
   changePassword: (body) => http.post('/auth/change-password', body),
 };
@@ -190,17 +235,20 @@ async function mockHandler(method, path, body) {
   // AUTH
   if (path === '/auth/employee/login') {
     const user = _employees.find(e => e.email === body.email) || MockData.CURRENT_USER;
-    return { success: true, data: { ...user, token: 'mock-jwt-token', expiresAt: null } };
+    return { success: true, data: { ...user, token: 'mock-jwt-token', refreshToken: 'mock-refresh-token', expiresAt: new Date(Date.now() + 3600000).toISOString() } };
   }
   if (path === '/auth/admin/login') {
     if (!body.email.includes('admin') && body.email !== 'priya@nexus.io') {
       await delay(200);
       throw new Error('Invalid admin credentials');
     }
-    return { success: true, data: { ...MockData.CURRENT_USER, role: 'Admin', token: 'mock-admin-jwt', expiresAt: null } };
+    return { success: true, data: { ...MockData.CURRENT_USER, role: 'Admin', token: 'mock-admin-jwt', refreshToken: 'mock-admin-refresh-token', expiresAt: new Date(Date.now() + 3600000).toISOString() } };
   }
   if (path === '/auth/me') return { success: true, data: MockData.CURRENT_USER };
   if (path === '/auth/logout') return { success: true };
+  if (path === '/auth/refresh') {
+    return { success: true, data: { token: 'mock-refreshed-jwt-token', refreshToken: 'mock-refreshed-refresh-token', expiresAt: new Date(Date.now() + 3600000).toISOString() } };
+  }
   if (path === '/auth/change-password') return { success: true };
 
   // DASHBOARD
