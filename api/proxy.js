@@ -34,12 +34,18 @@ export default async function handler(request) {
   try {
     // Only pass body for request methods that support it
     const hasBody = !['GET', 'HEAD'].includes(request.method);
+    let body = null;
+    if (hasBody) {
+      body = await request.arrayBuffer();
+      // Remove content-length and transfer-encoding to let fetch calculate them correctly
+      headers.delete('content-length');
+      headers.delete('transfer-encoding');
+    }
 
     const response = await fetch(targetUrl, {
       method: request.method,
       headers: headers,
-      body: hasBody ? request.body : null,
-      duplex: hasBody ? 'half' : undefined,
+      body: body,
     });
 
     // Copy response headers
