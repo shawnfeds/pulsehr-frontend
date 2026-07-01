@@ -4,7 +4,9 @@
 
 import { getToken, clearSession, getRefreshToken, updateSessionTokens } from '../utils/auth.js';
 
-export const BASE_URL = 'http://localhost:5000/api'; // ← Change to your .NET API URL
+export const BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5000/api'
+  : '/api';
 
 // ─── HTTP Client ──────────────────────────────────────────────────────────────
 async function request(method, path, body = null, opts = {}) {
@@ -214,7 +216,9 @@ export const NotificationAPI = {
 // ════════════════════════════════════════════════════════════════════════════════
 // MOCK HANDLER — Remove this entire section when integrating with .NET API
 // ════════════════════════════════════════════════════════════════════════════════
-window.MOCK_MODE = true;
+if (window.MOCK_MODE === undefined) {
+  window.MOCK_MODE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+}
 
 import * as MockData from '../data.js';
 
