@@ -73,13 +73,13 @@ export function requireAuth(requiredRole = null) {
   const session = getSession();
   if (!session) {
     const loginUrl = requiredRole === 'admin'
-      ? 'auth/admin-login.html'
-      : 'auth/employee-login.html';
+      ? '/auth/admin-login.html'
+      : '/auth/employee-login.html';
     window.location.href = loginUrl;
     return false;
   }
   if (requiredRole && session.role !== requiredRole) {
-    window.location.href = 'auth/employee-login.html';
+    window.location.href = '/auth/employee-login.html';
     return false;
   }
   return true;
@@ -99,8 +99,8 @@ export async function logout() {
   } finally {
     clearSession();
     const loginUrl = role === 'admin'
-      ? 'auth/admin-login.html'
-      : 'auth/employee-login.html';
+      ? '/auth/admin-login.html'
+      : '/auth/employee-login.html';
     window.location.href = loginUrl;
   }
 }

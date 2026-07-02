@@ -68,17 +68,17 @@ async function request(method, path, body = null, opts = {}) {
           } catch (refreshErr) {
             console.error('Session expired, auto-refresh failed:', refreshErr);
             clearSession();
-            window.location.href = 'auth/employee-login.html';
+            window.location.href = '/auth/employee-login.html';
             return;
           }
         } else {
           clearSession();
-          window.location.href = 'auth/employee-login.html';
+          window.location.href = '/auth/employee-login.html';
           return;
         }
       } else {
         clearSession();
-        window.location.href = 'auth/employee-login.html';
+        window.location.href = '/auth/employee-login.html';
         return;
       }
     }

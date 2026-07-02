@@ -233,7 +233,7 @@
           password: document.querySelector('#password').value,
         });
         setSession(data, 'employee');
-        window.location.href = '../index.html';
+        window.location.href = '/index.html';
       } catch (err) {
         document.querySelector('#error-text').textContent = err.message || 'Invalid credentials. Please try again.';
         errEl.classList.add('show');
