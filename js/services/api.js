@@ -6,7 +6,7 @@ import { getToken, clearSession, getRefreshToken, updateSessionTokens } from '..
 
 export const BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:5000/api'
-  : '/api';
+  : 'https://pulsehr-api-cqja.onrender.com/api';
 
 // ─── HTTP Client ──────────────────────────────────────────────────────────────
 async function request(method, path, body = null, opts = {}) {
