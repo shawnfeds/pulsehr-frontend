@@ -1,86 +1,105 @@
-// Node.js runtime — more reliable than Edge for proxying to external backends
-export const config = { runtime: 'nodejs' };
+/**
+ * Vercel Serverless Proxy  (/api/proxy.js)
+ * Rewrites: /api/:path* → /api/proxy.js?path=:path*
+ *
+ * Forwards all /api/* requests to the .NET backend defined in API_URL env var.
+ * Set API_URL to your backend's ROOT URL (no trailing /api), e.g.:
+ *   https://your-api.fly.dev
+ * The proxy injects /api/ automatically so the full path becomes:
+ *   https://your-api.fly.dev/api/auth/employee/login
+ */
 
 export default async function handler(req, res) {
-  const backendUrl = process.env.API_URL;
-  if (!backendUrl) {
+  // ── 1. Validate env var ────────────────────────────────────────────────────
+  const backendBase = process.env.API_URL;
+  if (!backendBase) {
     return res.status(500).json({
-      error: 'API_URL environment variable is not configured on Vercel.',
-      hint: 'Go to your Vercel project → Settings → Environment Variables and add API_URL pointing to your backend (e.g. https://your-api.example.com/api)',
+      error: 'API_URL is not set.',
+      hint: 'Vercel → Project Settings → Environment Variables → add API_URL (e.g. https://your-api.fly.dev)',
     });
   }
 
-  // Parse the incoming request URL
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  // Get the 'path' parameter that was rewritten (e.g., 'auth/employee/login')
-  const pathParam = url.searchParams.get('path') || '';
+  // ── 2. Extract path + remaining query string from raw URL ──────────────────
+  // Vercel rewrites /api/auth/employee/login → /api/proxy.js?path=auth/employee/login
+  const rawUrl = req.url || '/';
+  const qIndex = rawUrl.indexOf('?');
+  const qs = qIndex !== -1 ? rawUrl.slice(qIndex + 1) : '';
+  const params = new URLSearchParams(qs);
 
-  // Remove 'path' so it doesn't get forwarded to the backend
-  url.searchParams.delete('path');
-  const queryString = url.searchParams.toString();
+  const apiPath = params.get('path') || '';   // e.g. "auth/employee/login"
+  params.delete('path');                       // remaining are real query params
+  const forwardQs = params.toString();         // e.g. "search=foo&status=active"
 
-  // Construct target URL
-  const cleanBackendUrl = backendUrl.replace(/\/$/, '');
-  const cleanPath = pathParam.replace(/^\//, '');
-  const targetUrl = `${cleanBackendUrl}/${cleanPath}${queryString ? '?' + queryString : ''}`;
+  // ── 3. Build target URL ────────────────────────────────────────────────────
+  const base = backendBase.replace(/\/$/, '');
+  const path = apiPath.replace(/^\//, '');
+  // Inject /api/ so that API_URL=https://backend.com produces:
+  //   https://backend.com/api/auth/employee/login
+  const targetUrl = `${base}/api/${path}${forwardQs ? '?' + forwardQs : ''}`;
 
-  // Forward headers, stripping hop-by-hop headers that cause issues
-  const headers = { ...req.headers };
-  delete headers['host'];
-  delete headers['connection'];
-  delete headers['content-length'];
-  delete headers['transfer-encoding'];
+  // ── 4. Strip hop-by-hop request headers ───────────────────────────────────
+  const forwardHeaders = { ...req.headers };
+  [
+    'host', 'connection', 'keep-alive', 'proxy-authenticate',
+    'proxy-authorization', 'te', 'trailers', 'upgrade',
+    'content-length', 'transfer-encoding',
+  ].forEach(h => delete forwardHeaders[h]);
 
-  try {
-    // Collect body for methods that support it
-    let body = undefined;
-    if (!['GET', 'HEAD'].includes(req.method)) {
-      body = await new Promise((resolve, reject) => {
-        const chunks = [];
-        req.on('data', chunk => chunks.push(chunk));
-        req.on('end', () => resolve(Buffer.concat(chunks)));
-        req.on('error', reject);
-      });
-    }
-
-    // 10-second timeout so the function doesn't hang and hit Vercel's limit
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-
-    let response;
-    try {
-      response = await fetch(targetUrl, {
-        method: req.method,
-        headers,
-        body: body && body.length > 0 ? body : undefined,
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    // Forward response headers
-    const responseHeaders = Object.fromEntries(response.headers.entries());
-    // Remove headers that can't be set manually in Node.js http responses
-    delete responseHeaders['content-encoding'];
-    delete responseHeaders['transfer-encoding'];
-
-    res.status(response.status);
-    Object.entries(responseHeaders).forEach(([k, v]) => {
-      try { res.setHeader(k, v); } catch (_) { /* skip invalid headers */ }
+  // ── 5. Buffer request body ─────────────────────────────────────────────────
+  let bodyBuffer;
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method.toUpperCase())) {
+    bodyBuffer = await new Promise((resolve, reject) => {
+      const chunks = [];
+      req.on('data', chunk => chunks.push(chunk));
+      req.on('end', () => resolve(Buffer.concat(chunks)));
+      req.on('error', reject);
     });
+    if (bodyBuffer.length > 0) {
+      // Re-inject accurate content-length so the backend can parse the body
+      forwardHeaders['content-length'] = String(bodyBuffer.length);
+    } else {
+      bodyBuffer = undefined;
+    }
+  }
 
-    const responseBody = await response.arrayBuffer();
-    res.end(Buffer.from(responseBody));
-  } catch (error) {
-    const isTimeout = error.name === 'AbortError';
-    console.error('Proxy error:', error);
-    res.status(502).json({
-      error: isTimeout
-        ? 'Backend request timed out after 10 seconds'
-        : 'Failed to proxy request to backend',
-      details: error.message,
+  // ── 6. Fetch with 15s timeout ──────────────────────────────────────────────
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+
+  let backendResponse;
+  try {
+    backendResponse = await fetch(targetUrl, {
+      method: req.method,
+      headers: forwardHeaders,
+      body: bodyBuffer,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    const timedOut = err.name === 'AbortError';
+    console.error('[proxy] fetch error:', err.message, '| target:', targetUrl);
+    return res.status(502).json({
+      error: timedOut ? 'Backend timed out (15 s)' : 'Could not reach backend',
+      details: err.message,
       target: targetUrl,
     });
+  } finally {
+    clearTimeout(timer);
   }
+
+  // ── 7. Forward response, stripping hop-by-hop response headers ────────────
+  const skipResponseHeaders = new Set([
+    'content-encoding', 'transfer-encoding', 'connection',
+    'keep-alive', 'upgrade', 'trailer',
+  ]);
+
+  res.status(backendResponse.status);
+  backendResponse.headers.forEach((value, key) => {
+    if (!skipResponseHeaders.has(key.toLowerCase())) {
+      try { res.setHeader(key, value); } catch (_) { /* ignore */ }
+    }
+  });
+
+  const responseBuffer = Buffer.from(await backendResponse.arrayBuffer());
+  res.end(responseBuffer);
 }
